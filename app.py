@@ -2,8 +2,8 @@ from flask import Flask, request, jsonify, make_response
 from flask_sqlalchemy import SQLAlchemy
 from os import environ
 
-app= Flask(__name__)
-app.config['SQLALQUEMY_DATABASE_URI'] = environ.get('DB_URL')
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = environ.get('DB_URL')
 db = SQLAlchemy(app)
 
 class User(db.Model):
@@ -20,7 +20,7 @@ class User(db.Model):
             'email': self.email
         }
 
-db.create_all()
+    db.create_all()
 
 # test route
 @app.route('/test', methods=['GET'])
@@ -53,7 +53,9 @@ def get_users():
 def get_user(id):
     try:
         user = User.query.filter_by(id=id).first()
-        return make_response(jsonify({'user': user.json()}), 200)
+        if user:
+            return make_response(jsonify({'user': user.json()}), 200)
+        return make_response(jsonify({'message': 'user not found'}), 404)
     except Exception as e:
         return make_response(jsonify({'message': 'error gettng user'}), 500)
 
@@ -71,3 +73,16 @@ def update_user(id):
         return make_response(jsonify({'message': 'user not found'}), 400)
     except Exception as e:
         return make_response(jsonify({'message': 'error updating user'}),500)
+
+#delete a user
+app.route('/users/<int:id>', methods=['DELETE'])
+def delete_user(id):
+    try:
+        user = User.query.filter_by(id=id).first()
+        if user:
+            db.session.delete(user)
+            db.session.commit()
+            return make_response(jsonify({'message': 'user deleted'}), 200)
+        return make_response(jsonify({'message': 'user not found'}), 404)
+    except e:
+        return make_response(jsonify({'message': 'error deleting user'}), 500)
